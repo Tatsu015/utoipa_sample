@@ -17,7 +17,11 @@ async fn main() {
     axum::serve(listener, router).await.unwrap();
 }
 
-#[utoipa::path(get, path = "/")]
+#[utoipa::path(get, path = "/", tag = "root_tag", description = "root description",
+responses ((
+    status = 200,
+    body = &'static str
+)))]
 async fn root() -> &'static str {
     "Hello"
 }
