@@ -1,10 +1,16 @@
+use axum::Json;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
 
 #[tokio::main]
 async fn main() {
-    let (router, api) = OpenApiRouter::new().routes(routes!(root)).split_for_parts();
+    let (router, api) = OpenApiRouter::new()
+        .routes(routes!(root))
+        .routes(routes!(get_user))
+        .split_for_parts();
 
     let router = router.merge(SwaggerUi::new("/docs").url("/apidoc/openapi.json", api));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -16,19 +22,20 @@ async fn root() -> &'static str {
     "Hello"
 }
 
-// #[derive(Serialize)]
-// struct User {
-//     id: u8,
-//     name: &'static str,
-// }
+#[derive(ToSchema, Deserialize, Serialize)]
+struct User {
+    id: u8,
+    name: &'static str,
+}
 
-// async fn get_user() -> Json<User> {
-//     let user = User {
-//         id: 1,
-//         name: "sample_name",
-//     };
-//     Json(user)
-// }
+#[utoipa::path(get, path = "/user", responses((status = 200, body = User)))]
+async fn get_user() -> Json<User> {
+    let user = User {
+        id: 1,
+        name: "sample_name",
+    };
+    Json(user)
+}
 
 // use std::io;
 // use std::net::Ipv4Addr;
