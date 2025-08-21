@@ -10,3 +10,4 @@ tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "net"] }
 tracing-subscriber = "0.3.19"
 utoipa = "5.4.0"
 utoipa-axum = "0.2.0"
+utoipa-swagger-ui = {version = "9.0.2", features = ["axum"] }
