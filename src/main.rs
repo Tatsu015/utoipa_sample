@@ -32,7 +32,7 @@ struct User {
     name: &'static str,
 }
 
-#[utoipa::path(get, path = "/user", responses((status = 200, body = User)))]
+#[utoipa::path(get, path = "/user", tag = "user_tag", description = "user description", responses((status = 200, body = User)))]
 async fn get_user() -> Json<User> {
     let user = User {
         id: 1,
