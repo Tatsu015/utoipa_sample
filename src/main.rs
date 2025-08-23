@@ -1,9 +1,16 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
+
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
+
+use std::sync::LazyLock;
+
+static DB: LazyLock<Mutex<HashMap<String, User>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[tokio::main]
 async fn main() {
