@@ -1,27 +1,34 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
 
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, RwLock};
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
 
-use std::sync::LazyLock;
+use axum::{Json, http::StatusCode, response::IntoResponse};
 
-static DB: LazyLock<Mutex<HashMap<String, User>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+use once_cell::sync::Lazy;
+
+static users: Lazy<Arc<RwLock<HashMap<u64, User>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[tokio::main]
 async fn main() {
     let (router, api) = OpenApiRouter::new()
-        .routes(routes!(root))
-        .routes(routes!(get_user))
+        .routes(routes!(root, get_user, create_user))
+        // .routes(routes!(get_user))
+        // .routes(routes!(create_user))
         .split_for_parts();
 
-    let router = router.merge(SwaggerUi::new("/docs").url("/apidoc/openapi.json", api));
+    let app = axum::Router::new()
+        .merge(router)
+        .merge(SwaggerUi::new("/docs").url("/apidoc/openapi.json", api));
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, router).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 #[utoipa::path(get, path = "/", tag = "root_tag", description = "root description",
@@ -33,7 +40,7 @@ async fn root() -> &'static str {
     "Hello"
 }
 
-#[derive(ToSchema, Deserialize, Serialize)]
+#[derive(ToSchema, Deserialize, Serialize, Clone)]
 struct User {
     id: u8,
     name: &'static str,
@@ -47,6 +54,38 @@ async fn get_user() -> Json<User> {
     };
     Json(user)
 }
+
+#[utoipa::path(
+    post,
+    path = "/users",
+    request_body = User,
+    responses(
+        (status = 201, description = "User created", body = User)
+    )
+)]
+async fn create_user(Json(user): Json<User>) -> impl IntoResponse {
+    let mut db = users.write().unwrap();
+    db.insert(user.id as u64, user.clone());
+    (StatusCode::CREATED, Json(user))
+}
+
+// #[utoipa::path(post, path = "/user", tag = "user_tag", description = "create user description", request_body = User, responses((status = 201, body = User)))]
+// async fn create_user(Json(user): Json<User>) -> (axum::http::StatusCode, Json<User>) {
+//     let mut db = users.write().unwrap();
+//     db.insert(user.id as u64, user.clone());
+//     (axum::http::StatusCode::CREATED, Json(user))
+// }
+
+// async fn create_user(Json(user): Json<User>) -> Json<User> {
+//     let mut db = users.write().unwrap();
+//     db.insert(user.id, user);
+// }
+
+// async fn create_user(Json(user): Json<User>) -> Json<User> {
+//     let mut db = users.write().unwrap();
+//     db.insert(user.id as u64, user.clone());
+//     Json(user)
+// }
 
 // use std::io;
 // use std::net::Ipv4Addr;
