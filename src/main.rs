@@ -7,7 +7,7 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
 
-use axum::{Json, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::Path, http::StatusCode, response::IntoResponse};
 
 use once_cell::sync::Lazy;
 
@@ -43,13 +43,13 @@ struct User {
     name: String,
 }
 
-#[utoipa::path(get, path = "/user", tag = "user_tag", description = "user description", responses((status = 200, body = User)))]
-async fn get_user() -> Json<User> {
-    let user = User {
-        id: 1,
-        name: "sample_name".to_string(),
-    };
-    Json(user)
+#[utoipa::path(get, path = "/users/{id}", tag = "user_tag", description = "user description", responses((status = 200, body = User)), params(("id"=u64, Path, description = "find user id")))]
+async fn get_user(Path(id): Path<u64>) -> Result<Json<User>, StatusCode> {
+    let users = USERS.read().unwrap();
+    users
+        .get(&id)
+        .map(|user| Ok(Json(user.clone())))
+        .unwrap_or(Err(StatusCode::NOT_FOUND))
 }
 
 #[utoipa::path(
