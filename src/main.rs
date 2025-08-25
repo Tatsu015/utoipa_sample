@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use utoipa::ToSchema;
@@ -12,15 +11,13 @@ use axum::{Json, http::StatusCode, response::IntoResponse};
 
 use once_cell::sync::Lazy;
 
-static users: Lazy<Arc<RwLock<HashMap<u64, User>>>> =
+static USERS: Lazy<Arc<RwLock<HashMap<u64, User>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[tokio::main]
 async fn main() {
     let (router, api) = OpenApiRouter::new()
-        .routes(routes!(root, get_user, create_user))
-        // .routes(routes!(get_user))
-        // .routes(routes!(create_user))
+        .routes(routes!(get_user, create_user))
         .split_for_parts();
 
     let app = axum::Router::new()
@@ -43,14 +40,14 @@ async fn root() -> &'static str {
 #[derive(ToSchema, Deserialize, Serialize, Clone)]
 struct User {
     id: u8,
-    name: &'static str,
+    name: String,
 }
 
 #[utoipa::path(get, path = "/user", tag = "user_tag", description = "user description", responses((status = 200, body = User)))]
 async fn get_user() -> Json<User> {
     let user = User {
         id: 1,
-        name: "sample_name",
+        name: "sample_name".to_string(),
     };
     Json(user)
 }
@@ -64,10 +61,15 @@ async fn get_user() -> Json<User> {
     )
 )]
 async fn create_user(Json(user): Json<User>) -> impl IntoResponse {
-    let mut db = users.write().unwrap();
+    let mut db = USERS.write().unwrap();
     db.insert(user.id as u64, user.clone());
     (StatusCode::CREATED, Json(user))
 }
+// async fn create_user(Json(user): Json<User>) -> impl IntoResponse {
+//     let mut db = users.write().unwrap();
+//     db.insert(user.id as u64, user.clone());
+//     (StatusCode::CREATED, Json(user))
+// }
 
 // #[utoipa::path(post, path = "/user", tag = "user_tag", description = "create user description", request_body = User, responses((status = 201, body = User)))]
 // async fn create_user(Json(user): Json<User>) -> (axum::http::StatusCode, Json<User>) {
