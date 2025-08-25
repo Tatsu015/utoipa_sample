@@ -39,7 +39,7 @@ async fn root() -> &'static str {
 
 #[derive(ToSchema, Deserialize, Serialize, Clone)]
 struct User {
-    id: u8,
+    id: u64,
     name: String,
 }
 
@@ -62,7 +62,7 @@ async fn get_user() -> Json<User> {
 )]
 async fn create_user(Json(user): Json<User>) -> impl IntoResponse {
     let mut db = USERS.write().unwrap();
-    db.insert(user.id as u64, user.clone());
+    db.insert(user.id, user.clone());
     (StatusCode::CREATED, Json(user))
 }
 // async fn create_user(Json(user): Json<User>) -> impl IntoResponse {
